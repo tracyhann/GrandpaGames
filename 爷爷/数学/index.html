@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>爷爷的挑战：10道题</title>
+    <style>
+        :root {
+            --bg-color: #E3F2FD;
+            --primary: #1976D2;
+            --success: #388E3C;
+            --text: #37474F;
+        }
+
+        body {
+            font-family: "Microsoft YaHei", sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            touch-action: manipulation;
+        }
+
+        header { margin-bottom: 5px; text-align: center; }
+        h1 { font-size: 2rem; color: var(--primary); margin: 5px 0; }
+
+        /* 进度条样式 */
+        .progress-container {
+            width: 90%;
+            max-width: 400px;
+            background-color: #BBDEFB;
+            border-radius: 20px;
+            margin-bottom: 15px;
+            overflow: hidden;
+            height: 30px;
+            border: 2px solid white;
+            position: relative;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background-color: #4CAF50;
+            width: 0%; /* JS控制 */
+            transition: width 0.5s;
+        }
+
+        .progress-text {
+            position: absolute;
+            width: 100%;
+            text-align: center;
+            line-height: 30px;
+            top: 0;
+            left: 0;
+            font-weight: bold;
+            color: #1565C0;
+            font-size: 1.2rem;
+        }
+
+        /* 题目显示区 */
+        .question-card {
+            background: white;
+            width: 90%;
+            max-width: 500px;
+            padding: 20px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            border: 4px solid #90CAF9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 120px;
+        }
+
+        .equation {
+            font-size: 4rem;
+            font-weight: bold;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        #input-box {
+            display: inline-block;
+            min-width: 100px;
+            height: 80px;
+            border-bottom: 6px solid var(--text);
+            color: var(--primary);
+            text-align: center;
+            line-height: 80px;
+            padding: 0 10px;
+        }
+        
+        #input-box.empty::after { content: '?'; color: #CFD8DC; }
+
+        /* 键盘 */
+        .numpad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            width: 95%;
+            max-width: 450px;
+        }
+
+        .key-btn {
+            background: white;
+            border: none;
+            border-radius: 15px;
+            font-size: 2.8rem;
+            font-weight: bold;
+            color: #455A64;
+            padding: 15px 0;
+            box-shadow: 0 5px 0 #B0BEC5;
+            cursor: pointer;
+        }
+        .key-btn:active { transform: translateY(5px); box-shadow: none; background: #ECEFF1;}
+
+        .key-clear { background-color: #FFCCBC; color: #D84315; font-size: 1.8rem; display: flex; align-items: center; justify-content: center;}
+        .key-submit { background-color: #C8E6C9; color: #2E7D32; font-size: 1.8rem; display: flex; align-items: center; justify-content: center;}
+
+        /* 弹窗覆盖层 */
+        .overlay {
+            position: fixed; top:0; left:0; width:100%; height:100%;
+            background: rgba(255,255,255,0.95);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            text-align: center;
+        }
+
+        .big-btn {
+            background: var(--success);
+            color: white;
+            font-size: 2.5rem;
+            padding: 15px 60px;
+            border-radius: 60px;
+            border: none;
+            box-shadow: 0 8px 0 #1B5E20;
+            cursor: pointer;
+            margin-top: 20px;
+            animation: popIn 0.3s;
+        }
+
+        /* 错误动画 */
+        .wrong-shake { animation: shake 0.4s; border-color: #D32F2F !important; color: #D32F2F !important; }
+        @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-10px)} 75%{transform:translateX(10px)} }
+        @keyframes popIn { from{transform:scale(0.5)} to{transform:scale(1)} }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>🏆 爷爷的挑战</h1>
+        <div class="progress-container">
+            <div class="progress-bar" id="progress-bar"></div>
+            <div class="progress-text" id="progress-text">进度：0 / 10</div>
+        </div>
+    </header>
+
+    <div class="question-card">
+        <div class="equation">
+            <span id="num1">10</span>
+            <span id="symbol">+</span>
+            <span id="num2">5</span>
+            <span>=</span>
+            <div id="input-box" class="empty"></div>
+        </div>
+    </div>
+
+    <div class="numpad">
+        <button class="key-btn" onclick="pressNum(1)">1</button>
+        <button class="key-btn" onclick="pressNum(2)">2</button>
+        <button class="key-btn" onclick="pressNum(3)">3</button>
+
+        <button class="key-btn" onclick="pressNum(4)">4</button>
+        <button class="key-btn" onclick="pressNum(5)">5</button>
+        <button class="key-btn" onclick="pressNum(6)">6</button>
+
+        <button class="key-btn" onclick="pressNum(7)">7</button>
+        <button class="key-btn" onclick="pressNum(8)">8</button>
+        <button class="key-btn" onclick="pressNum(9)">9</button>
+        
+        <button class="key-btn key-clear" onclick="clearInput()">清除</button>
+        <button class="key-btn" onclick="pressNum(0)">0</button>
+        <button class="key-btn key-submit" onclick="submitAnswer()">确定</button>
+    </div>
+
+    <div id="next-overlay" class="overlay">
+        <h2 style="font-size: 4rem; color: #2E7D32; margin-bottom: 10px;">答对了！✅</h2>
+        <button class="big-btn" onclick="nextQuestion()">下一题 ➔</button>
+    </div>
+
+    <div id="finish-overlay" class="overlay">
+        <div style="font-size: 6rem;">🏆</div>
+        <h2 style="font-size: 3rem; color: #E65100; margin: 10px;">挑战成功！</h2>
+        <p style="font-size: 2rem; color: #555;">爷爷真棒！<br>100分！</p>
+        <button class="big-btn" style="background:#1976D2;" onclick="restartGame()">再玩一次 ↺</button>
+    </div>
+
+    <script>
+        let currentAnswer = 0;
+        let userInput = "";
+        let correctCount = 0;
+        const TARGET_COUNT = 10;
+
+        const inputBox = document.getElementById('input-box');
+        
+        // 音效素材
+        const sndClick = new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3'); 
+        const sndCorrect = new Audio('https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3'); 
+        const sndWrong = new Audio('https://assets.mixkit.co/active_storage/sfx/2572/2572-preview.mp3');   
+        const sndWin = new Audio('https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3'); // 欢呼声
+
+        function playSound(audio) {
+            try { audio.currentTime = 0; audio.play().catch(()=>{}); } catch(e){}
+        }
+
+        // 语音播报：爷爷真棒
+        function speakPraise() {
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance('爷爷真棒！恭喜过关！');
+                utterance.lang = 'zh-CN';
+                utterance.rate = 0.9; // 语速稍慢
+                utterance.pitch = 1.1; // 语调欢快
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        function pressNum(num) {
+            playSound(sndClick);
+            if (userInput.length >= 3) return; 
+            userInput += num;
+            updateDisplay();
+        }
+
+        function clearInput() {
+            playSound(sndClick);
+            userInput = "";
+            updateDisplay();
+            inputBox.classList.remove('wrong-shake');
+        }
+
+        function updateDisplay() {
+            if (userInput === "") {
+                inputBox.innerText = "";
+                inputBox.classList.add('empty');
+            } else {
+                inputBox.innerText = userInput;
+                inputBox.classList.remove('empty');
+            }
+        }
+
+        function updateProgress() {
+            const pct = (correctCount / TARGET_COUNT) * 100;
+            document.getElementById('progress-bar').style.width = pct + "%";
+            document.getElementById('progress-text').innerText = `进度：${correctCount} / ${TARGET_COUNT}`;
+        }
+
+        function submitAnswer() {
+            if (userInput === "") return;
+
+            if (parseInt(userInput) === currentAnswer) {
+                // 答对了
+                correctCount++;
+                updateProgress();
+                
+                if (correctCount >= TARGET_COUNT) {
+                    // 通关！
+                    playSound(sndWin);
+                    setTimeout(speakPraise, 500); // 延迟一点点说话
+                    document.getElementById('finish-overlay').style.display = 'flex';
+                } else {
+                    // 只是这一题答对了
+                    playSound(sndCorrect);
+                    document.getElementById('next-overlay').style.display = 'flex';
+                }
+            } else {
+                // 答错了
+                playSound(sndWrong);
+                inputBox.classList.add('wrong-shake');
+                setTimeout(() => {
+                    inputBox.classList.remove('wrong-shake');
+                    userInput = ""; 
+                    updateDisplay();
+                }, 800);
+            }
+        }
+
+        function rand(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        function nextQuestion() {
+            document.getElementById('next-overlay').style.display = 'none';
+            clearInput();
+
+            const type = Math.random() < 0.8 ? rand(0, 2) : 3; 
+            let num1, num2, symbol;
+
+            switch(type) {
+                case 0: // 加
+                    num1 = rand(1, 80); num2 = rand(1, 100 - num1);
+                    currentAnswer = num1 + num2; symbol = "+";
+                    break;
+                case 1: // 减
+                    num1 = rand(10, 99); num2 = rand(1, num1);
+                    currentAnswer = num1 - num2; symbol = "-";
+                    break;
+                case 2: // 乘
+                    num1 = rand(2, 9); num2 = rand(2, 9);
+                    currentAnswer = num1 * num2; symbol = "×";
+                    break;
+                case 3: // 除
+                    num2 = rand(2, 9); currentAnswer = rand(2, 9);
+                    num1 = num2 * currentAnswer; symbol = "÷";
+                    break;
+            }
+
+            document.getElementById('num1').innerText = num1;
+            document.getElementById('symbol').innerText = symbol;
+            document.getElementById('num2').innerText = num2;
+        }
+
+        function restartGame() {
+            correctCount = 0;
+            updateProgress();
+            document.getElementById('finish-overlay').style.display = 'none';
+            nextQuestion();
+        }
+
+        // 启动
+        nextQuestion();
+
+    </script>
+</body>
+</html>

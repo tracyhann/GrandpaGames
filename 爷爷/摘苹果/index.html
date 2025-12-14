@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>爷爷大战猴子：终极版</title>
+    <style>
+        /* --- 全局超大字号设置 --- */
+        :root {
+            --bg-color: #E8F5E9;
+            --tree-color: #2E7D32;
+            --trunk-color: #795548;
+            --text-color: #333;
+            --highlight: #FFD54F;
+        }
+
+        body {
+            font-family: -apple-system, "Microsoft YaHei", sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            touch-action: manipulation;
+            -webkit-user-select: none;
+            user-select: none;
+            min-height: 100vh;
+            overflow: hidden; 
+        }
+
+        header { text-align: center; margin-bottom: 10px; flex-shrink: 0; }
+        h1 { font-size: 3.5rem; margin: 5px 0; color: #BF360C; line-height: 1.2; }
+
+        /* --- 游戏主舞台 --- */
+        #stage {
+            display: flex;
+            width: 100%;
+            height: 100%;
+            flex: 1;
+            gap: 15px;
+            padding-bottom: 20px;
+            box-sizing: border-box;
+        }
+
+        /* --- 选手区域 --- */
+        .player-zone {
+            flex: 1;
+            background-color: #fff;
+            border-radius: 25px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            border: 6px solid #ccc;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+
+        #grandpa-zone { border-color: #FF5722; background-color: #FFCCBC; }
+        #monkey-zone { border-color: #795548; background-color: #D7CCC8; }
+
+        .avatar { font-size: 6rem; line-height: 1; margin-top: 10px; }
+        .player-name { font-size: 2.2rem; font-weight: bold; margin-bottom: 5px; }
+
+        /* --- 苹果树 --- */
+        .tree-container {
+            position: relative;
+            width: 100%;
+            flex: 1; 
+            margin: 10px 0;
+        }
+        .tree-crown {
+            position: absolute;
+            top: 0; left: 5%; right: 5%; height: 85%;
+            background-color: var(--tree-color);
+            border-radius: 50% 50% 40% 40%;
+            z-index: 2;
+            box-shadow: inset -10px -10px 0 rgba(0,0,0,0.1);
+        }
+        .tree-trunk {
+            position: absolute;
+            bottom: 0; left: 50%; width: 40px; height: 20%;
+            background-color: var(--trunk-color);
+            transform: translateX(-50%);
+            z-index: 1;
+        }
+
+        /* --- 树上的苹果 (Grid 网格布局 - 自动整齐) --- */
+        .on-tree-apples {
+            position: absolute;
+            top: 30px; left: 15%; right: 15%; bottom: 50px;
+            z-index: 3;
+            /* 关键修改：使用 Grid 布局，自动排成整齐的方阵 */
+            display: grid;
+            grid-template-columns: repeat(3, 1fr); /* 一行3个，整整齐齐 */
+            justify-items: center;
+            align-content: start;
+            gap: 5px; 
+        }
+        
+        .apple-icon {
+            font-size: 3.8rem; /* 苹果极大 */
+            filter: drop-shadow(2px 2px 0 rgba(0,0,0,0.2));
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        
+        .apple-picked-anim {
+            animation: dropDown 0.5s forwards;
+        }
+        @keyframes dropDown {
+            0% { transform: translateY(0); opacity: 1; }
+            100% { transform: translateY(300px) scale(0.5); opacity: 0; }
+        }
+
+        /* --- 分数篮子 --- */
+        .basket-area {
+            text-align: center;
+            background: rgba(255,255,255,0.6);
+            padding: 10px;
+            border-radius: 15px;
+            width: 90%;
+        }
+        .score-label { font-size: 1.5rem; color: #555; }
+        .score-text { font-size: 4.5rem; font-weight: 900; color: #BF360C; line-height: 1; }
+
+        /* --- 爷爷的点击遮罩 --- */
+        #tap-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 10; cursor: pointer;
+            background-color: rgba(255, 255, 255, 0); 
+        }
+        #tap-overlay:active { background-color: rgba(255, 255, 255, 0.3); }
+
+        .tap-hint {
+            position: absolute; top: 40%; left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 3.5rem;
+            color: #D84315;
+            font-weight: 900;
+            text-shadow: 2px 2px 0 #fff;
+            pointer-events: none;
+            text-align: center;
+            animation: pulse 1s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: translate(-50%, -50%) scale(1); }
+            50% { transform: translate(-50%, -50%) scale(1.1); }
+            100% { transform: translate(-50%, -50%) scale(1); }
+        }
+
+        /* --- 开始按钮 --- */
+        #start-btn {
+            padding: 20px 60px;
+            font-size: 3rem; 
+            border-radius: 80px;
+            border: none;
+            background-color: #FF9800;
+            color: white;
+            box-shadow: 0 10px 0 #E65100;
+            margin-bottom: 20px;
+            flex-shrink: 0;
+            font-weight: bold;
+        }
+        #start-btn:active { transform: translateY(10px); box-shadow: none; }
+        #start-btn:disabled { background-color: #ccc; box-shadow: none; color: #666; }
+
+        /* --- 结果弹窗 --- */
+        #result-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); z-index: 100;
+            display: none;
+            justify-content: center; align-items: center;
+        }
+        #result-content {
+            background: white; padding: 40px; border-radius: 40px;
+            text-align: center; border: 10px solid var(--highlight);
+            width: 80%;
+            max-width: 600px;
+            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes popIn {
+            from { transform: scale(0.5); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .big-emoji { font-size: 10rem; margin: 20px 0; line-height: 1.2; }
+        .result-title { font-size: 4rem; color: #BF360C; font-weight: 900; margin-bottom: 20px;}
+        .result-desc { font-size: 2.5rem; color: #555; margin-bottom: 40px; }
+
+        /* 猴子哭的动画 */
+        .crying-monkey { position: relative; display: inline-block; }
+        .tear {
+            position: absolute;
+            color: #2196F3;
+            font-size: 4rem;
+            animation: tearDrop 1.5s infinite;
+        }
+        .tear-l { left: 0; top: 40px; }
+        .tear-r { right: 0; top: 40px; animation-delay: 0.5s; }
+        @keyframes tearDrop {
+            0% { transform: translateY(0); opacity: 1; }
+            100% { transform: translateY(80px); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>👴 爷爷 VS 猴子 🐵</h1>
+</header>
+
+<button id="start-btn" onclick="startGame()">🔥 开始比赛！</button>
+
+<div id="stage">
+    <div class="player-zone" id="grandpa-zone">
+        <div id="tap-overlay" onclick="grandpaTap()">
+            <div class="tap-hint" id="tap-hint-text">点这里<br>帮爷爷摘！</div>
+        </div>
+        <div class="avatar">👴</div>
+        <div class="player-name">爷爷队</div>
+        <div class="tree-container">
+            <div class="tree-crown"></div>
+            <div class="tree-trunk"></div>
+            <div class="on-tree-apples" id="g-tree-apples"></div>
+        </div>
+        <div class="basket-area">
+            <div class="score-label">已摘苹果</div>
+            <div class="score-text" id="g-score">0</div>
+        </div>
+    </div>
+
+    <div class="player-zone" id="monkey-zone">
+        <div class="avatar">🐵</div>
+        <div class="player-name">猴子队</div>
+        <div class="tree-container">
+            <div class="tree-crown" style="background-color: #33691E;"></div>
+            <div class="tree-trunk"></div>
+            <div class="on-tree-apples" id="m-tree-apples"></div>
+        </div>
+        <div class="basket-area">
+            <div class="score-label">已摘苹果</div>
+            <div class="score-text" id="m-score">0</div>
+        </div>
+    </div>
+</div>
+
+<div id="result-modal">
+    <div id="result-content">
+        <div id="win-content" style="display:none;">
+            <div class="big-emoji crying-monkey">
+                🐵
+                <span class="tear tear-l">💧</span>
+                <span class="tear tear-r">💧</span>
+            </div>
+            <div class="big-emoji">🏆👴🎉</div>
+            <div class="result-title">爷爷赢啦！</div>
+            <div class="result-desc">猴子输得哇哇大哭！<br>爷爷手速太快了！</div>
+        </div>
+
+        <div id="lose-content" style="display:none;">
+            <div class="big-emoji">🐵🍌</div>
+            <div class="result-title">猴子赢了</div>
+            <div class="result-desc">这只猴子偷吃太快了！<br>爷爷再来一次！</div>
+        </div>
+
+        <button id="start-btn" style="background-color:#2E7D32; margin:0;" onclick="closeModal()">再比一次</button>
+    </div>
+</div>
+
+<script>
+    const TOTAL_APPLES = 12; // 苹果总数
+    let gApplesLeft = TOTAL_APPLES;
+    let mApplesLeft = TOTAL_APPLES;
+    let gameActive = false;
+    let monkeyTimer = null;
+
+    function setupBoard() {
+        gApplesLeft = TOTAL_APPLES;
+        mApplesLeft = TOTAL_APPLES;
+        document.getElementById('g-score').innerText = 0;
+        document.getElementById('m-score').innerText = 0;
+        document.getElementById('tap-hint-text').style.display = 'block';
+        
+        renderTreeApples('g-tree-apples', gApplesLeft);
+        renderTreeApples('m-tree-apples', mApplesLeft);
+    }
+
+    function renderTreeApples(containerId, count) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = '';
+        for (let i = 0; i < count; i++) {
+            const apple = document.createElement('span');
+            apple.className = 'apple-icon';
+            apple.innerText = '🍎';
+            // 不再需要在这里加 \n，CSS Grid 会自动帮你排好队
+            container.appendChild(apple);
+        }
+    }
+
+    function startGame() {
+        if (gameActive) return;
+        gameActive = true;
+        setupBoard();
+        document.getElementById('start-btn').disabled = true;
+        document.getElementById('start-btn').innerText = "比赛中...";
+        document.getElementById('tap-hint-text').style.display = 'none'; 
+
+        // 猴子开始
+        monkeyAI();
+    }
+
+    function grandpaTap() {
+        if (!gameActive) return;
+        if (gApplesLeft > 0) {
+            pickApple('g');
+            checkWin();
+        }
+    }
+
+    function monkeyAI() {
+        // 猴子速度：1.2秒到2.2秒之间摘一个
+        let delay = Math.random() * 1000 + 1200; 
+        
+        monkeyTimer = setTimeout(() => {
+            if (!gameActive) return;
+            if (mApplesLeft > 0) {
+                pickApple('m');
+                checkWin();
+                monkeyAI();
+            }
+        }, delay);
+    }
+
+    function pickApple(who) {
+        let treeId = who === 'g' ? 'g-tree-apples' : 'm-tree-apples';
+        let scoreId = who === 'g' ? 'g-score' : 'm-score';
+        let applesLeft = who === 'g' ? gApplesLeft : mApplesLeft;
+        
+        if (applesLeft <= 0) return;
+
+        const treeContainer = document.getElementById(treeId);
+        const apples = treeContainer.getElementsByClassName('apple-icon');
+        
+        if (apples.length > 0) {
+            // 取出最后一个苹果
+            const appleToPick = apples[apples.length - 1];
+            appleToPick.classList.add('apple-picked-anim');
+            
+            // 数据更新
+            if (who === 'g') gApplesLeft--; else mApplesLeft--;
+            
+            // 更新分数
+            document.getElementById(scoreId).innerText = TOTAL_APPLES - (who === 'g' ? gApplesLeft : mApplesLeft);
+
+            setTimeout(() => {
+                appleToPick.remove();
+            }, 500);
+        }
+    }
+
+    function checkWin() {
+        if (gApplesLeft <= 0) {
+            endGame("grandpa");
+        } else if (mApplesLeft <= 0) {
+            endGame("monkey");
+        }
+    }
+
+    function endGame(winner) {
+        gameActive = false;
+        clearTimeout(monkeyTimer);
+        document.getElementById('start-btn').disabled = false;
+        document.getElementById('start-btn').innerText = "🔥 再比一次";
+
+        const modal = document.getElementById('result-modal');
+        const winContent = document.getElementById('win-content');
+        const loseContent = document.getElementById('lose-content');
+
+        modal.style.display = 'flex';
+
+        if (winner === "grandpa") {
+            winContent.style.display = 'block';
+            loseContent.style.display = 'none';
+            // 胜利音效
+            try { new Audio('https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3').play(); } catch(e){}
+        } else {
+            winContent.style.display = 'none';
+            loseContent.style.display = 'block';
+        }
+    }
+
+    function closeModal() {
+        document.getElementById('result-modal').style.display = 'none';
+        setupBoard();
+    }
+
+    setupBoard();
+</script>
+</body>
+</html>

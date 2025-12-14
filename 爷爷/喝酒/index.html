@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>爷爷 VS 猴子：干杯大赛</title>
+    <style>
+        :root {
+            --bg-color: #FFF3E0; /* 暖色背景 */
+            --bowl-bg: rgba(255,255,255,0.8);
+            --liquid-color: #FFB74D; /* 像黄酒或茶的颜色 */
+            --monkey-liquid: #A1887F; /* 猴子喝的稍微浑浊点 */
+        }
+
+        body {
+            font-family: "Microsoft YaHei", sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* 顶部栏 */
+        .top-bar {
+            height: 60px;
+            background: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            flex-shrink: 0;
+            z-index: 10;
+        }
+        h1 { margin: 0; font-size: 2rem; color: #E65100; }
+
+        /* 主舞台 */
+        #stage {
+            flex: 1;
+            display: flex;
+            padding: 10px;
+            gap: 10px;
+            position: relative;
+        }
+
+        /* 选手卡片 */
+        .player-card {
+            flex: 1;
+            background: #fff;
+            border-radius: 20px;
+            border: 5px solid #8D6E63;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        #grandpa-card { border-color: #E64A19; }
+        #monkey-card { border-color: #5D4037; background: #EFEBE9; }
+
+        .avatar { font-size: 5rem; margin-top: 10px; z-index: 2; }
+        .name { font-size: 2rem; font-weight: bold; color: #333; z-index: 2; margin-bottom: 5px;}
+
+        /* --- 那个大碗 --- */
+        .bowl-container {
+            width: 140px;
+            height: 140px;
+            border: 8px solid #333;
+            border-radius: 10px 10px 60px 60px; /* 碗的形状 */
+            position: relative;
+            margin-top: auto;
+            margin-bottom: 20px;
+            background: var(--bowl-bg);
+            overflow: hidden; /* 液体不能溢出 */
+            z-index: 1;
+        }
+
+        /* 碗里的液体 */
+        .liquid {
+            position: absolute;
+            bottom: 0; left: 0; width: 100%;
+            height: 0%; /* 初始高度，JS控制 */
+            transition: height 0.2s linear;
+        }
+        #g-liquid { background-color: var(--liquid-color); }
+        #m-liquid { background-color: var(--monkey-liquid); }
+
+        /* 液体表面的波浪线条装饰 */
+        .liquid::after {
+            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 5px;
+            background: rgba(255,255,255,0.5);
+        }
+
+        /* 进度文字 */
+        .progress-text {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #555;
+            margin-bottom: 10px;
+        }
+        .big-count { font-size: 2.5rem; color: #E65100; }
+
+        /* --- 爷爷的大按钮 (覆盖在左侧) --- */
+        #tap-zone {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 10; cursor: pointer;
+            /* 点击反馈 */
+            background: rgba(255,255,255,0);
+        }
+        #tap-zone:active { background: rgba(255,255,255,0.2); }
+
+        /* 提示文字 */
+        .hint-text {
+            position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%);
+            font-size: 2.5rem; font-weight: 900; color: #D84315;
+            pointer-events: none; opacity: 0.6;
+            text-align: center;
+        }
+
+        /* --- 状态特效 (咕嘟/呛到) --- */
+        .status-bubble {
+            position: absolute; top: 30%;
+            font-size: 2rem; font-weight: bold;
+            animation: floatUp 0.8s forwards;
+            pointer-events: none; z-index: 20;
+        }
+        @keyframes floatUp {
+            0% { transform: translateY(0) scale(0.5); opacity: 1; }
+            100% { transform: translateY(-50px) scale(1.2); opacity: 0; }
+        }
+
+        .choke-mask {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255,0,0,0.3);
+            display: none;
+            align-items: center; justify-content: center;
+            font-size: 3rem; color: white; font-weight: bold;
+            z-index: 5;
+            text-shadow: 2px 2px 0 red;
+        }
+
+        /* --- 底部按钮 --- */
+        .controls {
+            padding: 15px;
+            background: #fff;
+            display: flex;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        #start-btn {
+            width: 100%; max-width: 400px;
+            padding: 15px 0;
+            font-size: 2.5rem; border-radius: 50px; border: none;
+            background: #FF6F00; color: white; font-weight: bold;
+            box-shadow: 0 6px 0 #E65100; cursor: pointer;
+        }
+        #start-btn:active { transform: translateY(6px); box-shadow: none; }
+        #start-btn:disabled { background: #ccc; box-shadow: none; color: #666; }
+
+        /* --- 结果弹窗 --- */
+        #modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); z-index: 100;
+            display: none; justify-content: center; align-items: center;
+        }
+        .modal-box {
+            background: white; width: 85%; max-width: 500px;
+            padding: 30px; border-radius: 30px; text-align: center;
+            border: 8px solid #FFCA28;
+            animation: popIn 0.5s;
+        }
+        @keyframes popIn { from{transform:scale(0.5)} to{transform:scale(1)} }
+
+        .monkey-cry { font-size: 8rem; position: relative; display: inline-block; margin: 20px 0;}
+        .tear {
+            position: absolute; color: #2196F3; font-size: 3rem;
+            animation: tearDrop 1s infinite;
+        }
+        .t1 { left: 0; top: 40px; }
+        .t2 { right: 0; top: 50px; animation-delay: 0.3s; }
+        @keyframes tearDrop { 100% { transform:translateY(60px); opacity:0; } }
+
+    </style>
+</head>
+<body>
+
+<div class="top-bar">
+    <h1>🍶 豪爽干杯大赛</h1>
+</div>
+
+<div id="stage">
+    <div class="player-card" id="grandpa-card">
+        <div id="tap-zone" onclick="grandpaDrink()">
+            <div class="hint-text" id="g-hint">点这里<br>喝！</div>
+        </div>
+        <div class="avatar">👴</div>
+        <div class="name">爷爷</div>
+        
+        <div class="progress-text">还剩 <span class="big-count" id="g-count">3</span> 碗</div>
+
+        <div class="bowl-container">
+            <div class="liquid" id="g-liquid"></div>
+        </div>
+    </div>
+
+    <div class="player-card" id="monkey-card">
+        <div class="avatar">🐵</div>
+        <div class="name">笨猴子</div>
+        
+        <div class="progress-text">还剩 <span class="big-count" id="m-count">3</span> 碗</div>
+
+        <div class="bowl-container">
+            <div class="liquid" id="m-liquid"></div>
+            <div class="choke-mask" id="m-choke">
+                咳咳!<br>呛着了
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="controls">
+    <button id="start-btn" onclick="startGame()">🔥 开始斟酒！</button>
+</div>
+
+<div id="modal">
+    <div class="modal-box">
+        <h2 style="font-size:3rem; color:#E65100; margin:0;">比赛结束</h2>
+        
+        <div id="win-view" style="display:none;">
+            <div class="monkey-cry">
+                🐵
+                <span class="tear t1">💧</span>
+                <span class="tear t2">💧</span>
+            </div>
+            <p style="font-size:2.5rem; font-weight:bold; color:#333;">爷爷海量！<br>猴子喝趴下了！</p>
+        </div>
+
+        <div id="lose-view" style="display:none;">
+            <div style="font-size:6rem; margin:20px 0;">🐵🍺</div>
+            <p style="font-size:2rem;">猴子这次运气好...<br>再来一局！</p>
+        </div>
+
+        <button id="start-btn" style="background:#2E7D32; margin-top:20px; font-size:2rem;" onclick="closeModal()">再干一碗！</button>
+    </div>
+</div>
+
+<script>
+    // 游戏配置
+    const TOTAL_BOWLS = 3;   // 总共喝3碗
+    const TAPS_PER_BOWL = 6; // 每碗需要点6下才能喝完
+    
+    // 状态
+    let gBowls = TOTAL_BOWLS;
+    let mBowls = TOTAL_BOWLS;
+    let gSips = 0; // 当前这碗喝了多少口
+    let mSips = 0;
+    
+    let isPlaying = false;
+    let monkeyTimer = null;
+    let monkeyIsChoking = false;
+
+    // 初始化
+    function resetGame() {
+        gBowls = TOTAL_BOWLS;
+        mBowls = TOTAL_BOWLS;
+        gSips = 0;
+        mSips = 0;
+        
+        updateDisplay();
+        document.getElementById('g-hint').style.display = 'block';
+        document.getElementById('m-choke').style.display = 'none';
+        
+        // 初始液体是满的
+        document.getElementById('g-liquid').style.height = '100%';
+        document.getElementById('m-liquid').style.height = '100%';
+    }
+
+    function updateDisplay() {
+        document.getElementById('g-count').innerText = gBowls;
+        document.getElementById('m-count').innerText = mBowls;
+        
+        // 计算液体高度百分比 (反向，喝得越多高度越低)
+        // 注意：这里逻辑是，sips越多，液体越少
+        // 初始 sips=0, height=100%. sips=TAPS, height=0%
+        let gHeight = 100 - (gSips / TAPS_PER_BOWL * 100);
+        let mHeight = 100 - (mSips / TAPS_PER_BOWL * 100);
+        
+        document.getElementById('g-liquid').style.height = `${gHeight}%`;
+        document.getElementById('m-liquid').style.height = `${mHeight}%`;
+    }
+
+    // 开始
+    function startGame() {
+        if (isPlaying) return;
+        resetGame();
+        isPlaying = true;
+        document.getElementById('start-btn').disabled = true;
+        document.getElementById('start-btn').innerText = "正在比赛...";
+        document.getElementById('g-hint').style.display = 'none';
+        
+        startMonkeyAI();
+    }
+
+    // 爷爷喝
+    function grandpaDrink() {
+        if (!isPlaying) return;
+        if (gBowls <= 0) return;
+
+        gSips++;
+        showEffect("咕嘟", "grandpa-card", "#E65100");
+        
+        // 喝完一碗
+        if (gSips >= TAPS_PER_BOWL) {
+            finishBowl('g');
+        } else {
+            updateDisplay();
+        }
+    }
+
+    function finishBowl(who) {
+        if (who === 'g') {
+            gBowls--;
+            gSips = 0;
+            showEffect("哈~ 爽!", "grandpa-card", "#D84315");
+            // 简单震动反馈
+            if(navigator.vibrate) navigator.vibrate(50);
+        } else {
+            mBowls--;
+            mSips = 0;
+            showEffect("吱吱!", "monkey-card", "#5D4037");
+        }
+        
+        updateDisplay();
+        
+        // 重新倒酒动画（瞬间满上）
+        if ((who === 'g' && gBowls > 0) || (who === 'm' && mBowls > 0)) {
+            setTimeout(() => {
+                if(who === 'g') document.getElementById('g-liquid').style.height = '100%';
+                else document.getElementById('m-liquid').style.height = '100%';
+            }, 100);
+        }
+
+        checkWin();
+    }
+
+    // 笨猴子AI
+    function startMonkeyAI() {
+        if (monkeyTimer) clearTimeout(monkeyTimer);
+        
+        // 猴子喝水的间隔：随机
+        let delay = Math.random() * 500 + 400; // 0.4s - 0.9s 喝一口
+
+        monkeyTimer = setTimeout(() => {
+            if (!isPlaying) return;
+
+            // 如果猴子正在呛水，就不能喝，等一会
+            if (monkeyIsChoking) {
+                // 呛水持续 2秒
+                setTimeout(() => {
+                    monkeyIsChoking = false;
+                    document.getElementById('m-choke').style.display = 'none';
+                    startMonkeyAI(); // 恢复喝水
+                }, 2000);
+                return;
+            }
+
+            // 猴子喝一口
+            mSips++;
+            // 20% 概率呛到
+            if (Math.random() < 0.2) {
+                monkeyIsChoking = true;
+                document.getElementById('m-choke').style.display = 'flex';
+                // 呛到这口不算，或者暂停
+            } else {
+                showEffect("咕嘟", "monkey-card", "#795548");
+                if (mSips >= TAPS_PER_BOWL) {
+                    finishBowl('m');
+                } else {
+                    updateDisplay();
+                }
+            }
+
+            // 没赢就继续
+            if (mBowls > 0 && !monkeyIsChoking) {
+                startMonkeyAI();
+            } else if (monkeyIsChoking) {
+                // 如果呛到了，重新触发以便进入上面的呛水等待逻辑
+                startMonkeyAI();
+            }
+
+        }, delay);
+    }
+
+    // 飘字特效
+    function showEffect(text, cardId, color) {
+        const card = document.getElementById(cardId);
+        const el = document.createElement('div');
+        el.className = 'status-bubble';
+        el.innerText = text;
+        el.style.color = color;
+        // 随机位置
+        el.style.left = (20 + Math.random() * 60) + '%';
+        card.appendChild(el);
+        setTimeout(() => el.remove(), 800);
+    }
+
+    function checkWin() {
+        if (gBowls <= 0) endGame('grandpa');
+        else if (mBowls <= 0) endGame('monkey');
+    }
+
+    function endGame(winner) {
+        isPlaying = false;
+        clearTimeout(monkeyTimer);
+        document.getElementById('start-btn').disabled = false;
+        document.getElementById('start-btn').innerText = "🔥 再来一局";
+        
+        const modal = document.getElementById('modal');
+        const winView = document.getElementById('win-view');
+        const loseView = document.getElementById('lose-view');
+        
+        modal.style.display = 'flex';
+        
+        if (winner === 'grandpa') {
+            winView.style.display = 'block';
+            loseView.style.display = 'none';
+            try { new Audio('https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3').play(); } catch(e){}
+        } else {
+            winView.style.display = 'none';
+            loseView.style.display = 'block';
+        }
+    }
+
+    function closeModal() {
+        document.getElementById('modal').style.display = 'none';
+        resetGame();
+    }
+
+    // 启动
+    resetGame();
+
+</script>
+</body>
+</html>

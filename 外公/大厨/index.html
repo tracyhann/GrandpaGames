@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>外公的金牌厨房</title>
+    <style>
+        /* --- 全局超大号优化 --- */
+        :root {
+            --bg-color: #FFF3E0; /* 暖橙色背景 */
+            --card-color: #FFFFFF;
+            --primary-color: #FF6F00; /* 浓郁的橙红色 */
+            --success-color: #2E7D32;
+            --btn-text: #FFFFFF;
+        }
+
+        body {
+            font-family: -apple-system, "Microsoft YaHei", sans-serif;
+            background-color: var(--bg-color);
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            -webkit-user-select: none; /* 禁止选中文字 */
+            user-select: none;
+        }
+
+        h1 {
+            font-size: 3rem; /* 特大标题 */
+            color: #D84315;
+            margin: 10px 0;
+            text-shadow: 2px 2px 0px #FFE0B2;
+        }
+
+        p.subtitle {
+            font-size: 1.6rem;
+            color: #795548;
+            margin-bottom: 20px;
+        }
+
+        /* --- 游戏主界面 --- */
+        #game-container {
+            background-color: var(--card-color);
+            border-radius: 30px;
+            padding: 30px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            width: 95%;
+            max-width: 600px;
+            text-align: center;
+            border: 5px solid #FFECB3;
+        }
+
+        /* --- 目标栏 --- */
+        .dish-card {
+            background-color: #FFF8E1;
+            border: 3px dashed #FFB74D;
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .dish-card h2 {
+            font-size: 2.8rem; /* 菜名巨大 */
+            color: #E65100;
+            margin: 10px 0;
+        }
+        
+        .dish-card p {
+            font-size: 1.5rem;
+            color: #6D4C41;
+            margin: 0;
+        }
+
+        /* --- 大锅区域 --- */
+        .pot-container {
+            position: relative;
+            margin: 20px auto;
+            width: 200px;
+            height: 200px;
+            background-color: #CFD8DC;
+            border-radius: 50%;
+            border: 8px solid #546E7A;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            /* 锅的手柄装饰 */
+            box-shadow: inset 10px 10px 20px rgba(0,0,0,0.1);
+        }
+        
+        .pot-container::before, .pot-container::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            width: 40px;
+            height: 15px;
+            background-color: #37474F;
+            transform: translateY(-50%);
+        }
+        .pot-container::before { left: -45px; border-radius: 10px 0 0 10px; }
+        .pot-container::after { right: -45px; border-radius: 0 10px 10px 0; }
+
+        /* 锅里的食材 */
+        .pot-content {
+            font-size: 5rem; /* 锅里的东西要非常大 */
+            line-height: 1;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            z-index: 2;
+        }
+
+        .pot-item {
+            animation: bounceIn 0.5s;
+            cursor: pointer;
+        }
+
+        /* --- 食材架 --- */
+        .shelf-label {
+            font-size: 1.5rem;
+            margin-top: 20px;
+            margin-bottom: 15px;
+            display: block;
+            font-weight: bold;
+            color: #5D4037;
+        }
+
+        .ingredients-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr); /* 一行3个，保证大 */
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .food-btn {
+            background-color: #fff;
+            border: 3px solid #FFCC80;
+            border-radius: 20px;
+            height: 100px; /* 按钮高度固定 */
+            font-size: 4rem; /* 图标巨大 */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 5px 0 #FFB74D;
+            transition: transform 0.1s;
+        }
+
+        .food-btn:active {
+            transform: translateY(5px);
+            box-shadow: none;
+        }
+
+        .food-btn.used {
+            opacity: 0.3;
+            background-color: #eee;
+            border-color: #ccc;
+            box-shadow: none;
+        }
+
+        /* --- 评价文字 --- */
+        #feedback-area {
+            min-height: 80px;
+            padding: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #message {
+            font-size: 2rem; /* 评价文字大 */
+            font-weight: bold;
+            line-height: 1.4;
+        }
+
+        .msg-good { color: #2E7D32; }
+        .msg-bad { color: #C62828; }
+
+        /* --- 按钮 --- */
+        #action-btn {
+            background-color: var(--primary-color);
+            color: white;
+            font-size: 2.2rem;
+            padding: 20px 0;
+            width: 100%;
+            border: none;
+            border-radius: 50px;
+            box-shadow: 0 8px 0 #BF360C;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        #action-btn:active {
+            transform: translateY(8px);
+            box-shadow: none;
+        }
+
+        @keyframes bounceIn {
+            0% { transform: scale(0); }
+            60% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>👨‍🍳 外公的金牌厨房</h1>
+    <p class="subtitle">今天要招待全家人，看您的啦！</p>
+</header>
+
+<div id="game-container">
+    
+    <div class="dish-card">
+        <p>第 <span id="level-num">1</span> 道菜：</p>
+        <h2 id="target-dish">???</h2>
+        <p id="hint-text" style="font-size:1.3rem; color:#888;">(提示)</p>
+    </div>
+
+    <div class="pot-container" onclick="clearPot()">
+        <div class="pot-content" id="pot-display"></div>
+    </div>
+    <p style="color:#999; font-size:1.2rem;">(点错的食材，点一下锅就能拿出来)</p>
+
+    <div id="feedback-area">
+        <div id="message"></div>
+    </div>
+
+    <span class="shelf-label">👇 请选择 2 样食材下锅：</span>
+    <div class="ingredients-grid" id="food-shelf">
+        </div>
+
+    <button id="action-btn" onclick="checkCooking()">🔥 开火！</button>
+</div>
+
+<script>
+    // --- 升级版菜谱数据 ---
+    // hint: 给外公的一点提示
+    // correctIngredients: 正确的配方
+    // comment: 做对了之后的具体评价
+    // pool: 这关提供的备选食材
+    const levels = [
+        {
+            name: "长寿面",
+            hint: "过生日都要吃这个！要有面条和鸡蛋。",
+            correct: ["🍜", "🥚"], 
+            comment: "🍜 哇！这面条真劲道！祝外公福如东海，寿比南山！",
+            pool: ["🍜", "🥩", "🥚", "🌶️", "🍬", "🥦"]
+        },
+        {
+            name: "红烧肉",
+            hint: "要选大块肉，还要放糖提鲜哦。",
+            correct: ["🥩", "🍬"],
+            comment: "🥩 太香了！肥而不腻，入口即化，这手艺绝了！",
+            pool: ["🥩", "🍬", "🧂", "🐟", "🍋", "🍆"]
+        },
+        {
+            name: "小葱拌豆腐",
+            hint: "一清二白，清清爽爽。",
+            correct: ["⬜", "🌿"], // 白豆腐+葱
+            comment: "🌿 这种清淡的小菜最养生了，味道刚刚好！",
+            pool: ["⬜", "🥩", "🌿", "🌶️", "🍜", "🥚"]
+        },
+        {
+            name: "老母鸡汤",
+            hint: "很补身体的，加点蘑菇更鲜。",
+            correct: ["🐔", "🍄"],
+            comment: "🥣 喝一口暖到心里去了，真鲜啊！",
+            pool: ["🐔", "🍄", "🍬", "🌶️", "🐟", "🥒"]
+        },
+        {
+            name: "清蒸鲈鱼",
+            hint: "鱼要新鲜，加点葱姜去腥。",
+            correct: ["🐟", "🌿"],
+            comment: "🐟 火候掌握得真好，鱼肉好嫩，一点也不腥！",
+            pool: ["🐟", "🌿", "🥩", "🍬", "🍄", "🐔"]
+        },
+        {
+            name: "外公的特制茶",
+            hint: "饭后喝一杯，消食解腻。加片柠檬？",
+            correct: ["🍵", "🍋"],
+            comment: "🍵 嗯~ 茶香浓郁，加了柠檬更好喝了！",
+            pool: ["🍵", "🍋", "🌶️", "🧂", "🥩", "🍜"]
+        }
+    ];
+
+    let currentIdx = 0;
+    let myPot = []; // 锅里的东西
+    let isFinished = false; // 当前关卡是否已完成
+
+    function initLevel() {
+        if (currentIdx >= levels.length) {
+            showFinalWin();
+            return;
+        }
+
+        const data = levels[currentIdx];
+        myPot = [];
+        isFinished = false;
+        
+        // 更新界面文字
+        document.getElementById('level-num').innerText = currentIdx + 1;
+        document.getElementById('target-dish').innerText = data.name;
+        document.getElementById('hint-text').innerText = "(" + data.hint + ")";
+        document.getElementById('message').innerText = "请选 2 个食材放进锅里";
+        document.getElementById('message').className = "";
+        
+        document.getElementById('action-btn').innerText = "🔥 开火！";
+        document.getElementById('action-btn').style.backgroundColor = "#FF6F00";
+        document.getElementById('action-btn').disabled = false;
+
+        renderPot();
+        renderShelf(data.pool);
+    }
+
+    function renderShelf(pool) {
+        const shelf = document.getElementById('food-shelf');
+        shelf.innerHTML = "";
+        
+        // 简单打乱
+        let items = [...pool].sort(() => Math.random() - 0.5);
+
+        items.forEach(item => {
+            const btn = document.createElement('div');
+            btn.className = "food-btn";
+            btn.innerText = item;
+            btn.onclick = () => addToPot(item, btn);
+            shelf.appendChild(btn);
+        });
+    }
+
+    function addToPot(item, btn) {
+        if (isFinished) return;
+        if (myPot.length >= 2) {
+            showMessage("锅里装不下了，先点一下锅把菜拿出来。", "bad");
+            return;
+        }
+        if (myPot.includes(item)) return;
+
+        myPot.push(item);
+        btn.classList.add("used");
+        renderPot();
+        showMessage("", ""); // 清空错误提示
+    }
+
+    function clearPot() {
+        if (isFinished) return;
+        // 把锅清空，恢复下方按钮
+        myPot = [];
+        const btns = document.querySelectorAll('.food-btn');
+        btns.forEach(b => b.classList.remove('used'));
+        renderPot();
+        showMessage("锅清空了，重新选吧。", "");
+    }
+
+    function renderPot() {
+        const display = document.getElementById('pot-display');
+        display.innerHTML = "";
+        myPot.forEach(item => {
+            const span = document.createElement('span');
+            span.className = "pot-item";
+            span.innerText = item;
+            display.appendChild(span);
+        });
+    }
+
+    function checkCooking() {
+        if (isFinished) {
+            // 如果已经完成了，点击就是下一关
+            currentIdx++;
+            initLevel();
+            return;
+        }
+
+        if (myPot.length < 2) {
+            showMessage("食材不够呀，至少放 2 样。", "bad");
+            return;
+        }
+
+        const data = levels[currentIdx];
+        // 排序对比，确保 ["A", "B"] 和 ["B", "A"] 是一样的
+        const myStr = [...myPot].sort().join('');
+        const correctStr = [...data.correct].sort().join('');
+
+        const btn = document.getElementById('action-btn');
+
+        if (myStr === correctStr) {
+            // 成功
+            isFinished = true;
+            showMessage(data.comment, "good");
+            btn.innerText = "做得好！下一道菜 ➔";
+            btn.style.backgroundColor = "#2E7D32"; // 变绿
+        } else {
+            // 失败（根据包含的食材给不同提示，这里为了简单给通用趣味提示）
+            if (myPot.includes("🌶️") && !data.correct.includes("🌶️")) {
+                showMessage("咳咳！太辣了！这道菜不该放辣椒呀。", "bad");
+            } else if (myPot.includes("🍬") && !data.correct.includes("🍬")) {
+                showMessage("太甜了，这道菜不用放糖哦。", "bad");
+            } else {
+                showMessage("味道好像不太对？再看看提示，换个食材试试。", "bad");
+            }
+        }
+    }
+
+    function showMessage(text, type) {
+        const el = document.getElementById('message');
+        el.innerText = text;
+        if (type === "good") el.className = "msg-good";
+        else if (type === "bad") el.className = "msg-bad";
+        else el.className = "";
+    }
+
+    function showFinalWin() {
+        document.getElementById('game-container').innerHTML = `
+            <div style="font-size:6rem;">🏆👨‍🍳🎉</div>
+            <h2 style="font-size:3rem; color:#E65100;">金牌大厨！</h2>
+            <p style="font-size:2rem; margin:30px 0;">外公做的菜太好吃了！<br>全家人都抢着吃！</p>
+            <button id="action-btn" onclick="location.reload()">再做一桌！</button>
+        `;
+    }
+
+    // 开始
+    initLevel();
+
+</script>
+</body>
+</html>

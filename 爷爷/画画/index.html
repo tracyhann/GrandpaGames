@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>爷爷 比赛 猴子：灵魂画手</title>
+    <style>
+        :root {
+            --bg-color: #FFF8E1; /* 纸张米黄 */
+            --primary: #FF6F00;
+            --secondary: #3E2723;
+        }
+
+        body {
+            font-family: "Microsoft YaHei", sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            touch-action: none;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        header { text-align: center; margin-bottom: 5px; flex-shrink: 0; }
+        
+        /* 改动：标题字号加大 */
+        h1 { font-size: 2.8rem; margin: 5px 0; color: #D84315; }
+        /* 改动：副标题字号加大 */
+        p { font-size: 1.6rem; margin: 0; color: #5D4037; font-weight: bold;}
+
+        /* --- 题目栏 --- */
+        #topic-bar {
+            background: #fff;
+            padding: 8px 30px;
+            border-radius: 50px;
+            border: 4px solid #FFCA28;
+            margin-bottom: 10px;
+            /* 改动：题目字号加大 */
+            font-size: 2.2rem; 
+            font-weight: bold;
+            color: #333;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+            flex-shrink: 0;
+        }
+
+        /* --- 调色盘 --- */
+        #palette-bar {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .color-btn {
+            /* 改动：按钮稍微加大一点点方便点击 */
+            width: 50px; 
+            height: 50px;
+            border-radius: 50%;
+            border: 4px solid white;
+            box-shadow: 0 4px 5px rgba(0,0,0,0.2);
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        
+        .color-btn.active {
+            border-color: #333;
+            transform: scale(1.2);
+            box-shadow: 0 6px 8px rgba(0,0,0,0.3);
+        }
+
+        /* --- 画板区域 --- */
+        #art-studio {
+            display: flex;
+            width: 100%;
+            height: 100%;
+            flex: 1; 
+            gap: 15px;
+            padding-bottom: 10px;
+            min-height: 0; 
+        }
+
+        .easel {
+            flex: 1;
+            background: #fff;
+            border-radius: 15px;
+            border: 5px solid #8D6E63;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            box-shadow: 4px 4px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        canvas {
+            flex: 1;
+            background-color: white;
+            touch-action: none;
+            cursor: crosshair;
+            display: block;
+        }
+
+        .label-tag {
+            background: #8D6E63;
+            color: white;
+            text-align: center;
+            /* 改动：标签字号加大 */
+            font-size: 2rem; 
+            padding: 8px;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        /* 爷爷的画布背景 */
+        #g-canvas {
+            background-size: 60% 60%;
+            background-repeat: no-repeat;
+            background-position: center;
+        }
+        
+        #m-canvas { background-color: #EFEBE9; }
+
+        /* --- 底部控制栏 --- */
+        .controls {
+            display: flex;
+            gap: 20px;
+            width: 95%;
+            justify-content: center;
+            margin-bottom: 5px;
+            flex-shrink: 0;
+        }
+
+        .btn {
+            padding: 15px 0;
+            /* 改动：按钮字号加大 */
+            font-size: 2.2rem; 
+            border-radius: 50px;
+            border: none;
+            color: white;
+            font-weight: bold;
+            box-shadow: 0 6px 0 rgba(0,0,0,0.2);
+            cursor: pointer;
+            flex: 1; 
+        }
+        .btn:active { transform: translateY(6px); box-shadow: none; }
+        
+        #clear-btn { background-color: #FF7043; }
+        #done-btn { background-color: #2E7D32; }
+
+        /* --- 弹窗 --- */
+        #modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); z-index: 100;
+            display: none;
+            justify-content: center; align-items: center;
+        }
+        #modal-content {
+            background: white; padding: 30px; border-radius: 20px;
+            text-align: center; border: 8px solid #FFCA28;
+            width: 85%; max-width: 550px;
+            animation: popIn 0.5s;
+        }
+        @keyframes popIn {
+            from { transform: scale(0.5); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .score-board {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            font-size: 2.5rem; /* 改动：分数板文字加大 */
+            font-weight: bold;
+        }
+        .score-item { display: flex; flex-direction: column; align-items: center; }
+        .big-score { font-size: 5rem; color: #D84315; margin-top: 5px;} /* 改动：具体分数加大 */
+        
+        .monkey-cry { font-size: 7rem; position: relative; display: inline-block;} /* 改动：猴子哭脸加大 */
+        .tear {
+            position: absolute; color: #2196F3; font-size: 3rem;
+            animation: tearDrop 1s infinite;
+        }
+        .t1 { left: 5px; top: 50px; }
+        .t2 { right: 5px; top: 60px; animation-delay: 0.3s; }
+
+        @keyframes tearDrop {
+            0% { transform: translateY(0); opacity: 1; }
+            100% { transform: translateY(50px); opacity: 0; }
+        }
+        
+        /* 针对小屏幕手机做一点微调，防止大字体撑破 */
+        @media (max-width: 400px) {
+            h1 { font-size: 2.2rem; }
+            #topic-bar { font-size: 1.8rem; }
+            .btn { font-size: 1.8rem; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>🎨 爷爷 比赛 猴子</h1>
+    <p>看谁画得好！</p>
+</header>
+
+<div id="topic-bar">题目：<span id="topic-text">红苹果</span></div>
+
+<div id="palette-bar">
+    <div class="color-btn" style="background:#000000;" onclick="changeColor('#000000', this)"></div>
+    <div class="color-btn" style="background:#FF5252;" onclick="changeColor('#FF5252', this)"></div>
+    <div class="color-btn" style="background:#FFC107;" onclick="changeColor('#FFC107', this)"></div>
+    <div class="color-btn" style="background:#4CAF50;" onclick="changeColor('#4CAF50', this)"></div>
+    <div class="color-btn" style="background:#2196F3;" onclick="changeColor('#2196F3', this)"></div>
+    <div class="color-btn" style="background:#9C27B0;" onclick="changeColor('#9C27B0', this)"></div>
+</div>
+
+<div id="art-studio">
+    <div class="easel">
+        <canvas id="g-canvas"></canvas>
+        <div class="label-tag">👴 爷爷</div>
+    </div>
+
+    <div class="easel">
+        <canvas id="m-canvas"></canvas>
+        <div class="label-tag">🐵 猴子</div>
+    </div>
+</div>
+
+<div class="controls">
+    <button class="btn" id="clear-btn" onclick="clearCanvas()">🔄 重画</button>
+    <button class="btn" id="done-btn" onclick="finishGame()">✨ 画好了！</button>
+</div>
+
+<div id="modal-overlay">
+    <div id="modal-content">
+        <h2 style="font-size:3rem; color:#E65100; margin:0;">比赛结果</h2> <div class="score-board">
+            <div class="score-item">
+                <span>爷爷</span>
+                <span style="font-size:6rem;">👴</span> <span class="big-score">100分</span>
+            </div>
+            <div style="font-size:4rem; align-self:center;">VS</div> <div class="score-item">
+                <span>猴子</span>
+                <div class="monkey-cry">
+                    🐵
+                    <span class="tear t1">💧</span>
+                    <span class="tear t2">💧</span>
+                </div>
+                <span class="big-score" style="color:#777; font-size:3rem;">0分</span>
+            </div>
+        </div>
+
+        <p style="font-size:2rem; color:#555;">评委：猴子画得太丑了！<br>爷爷是第一名！</p> <button class="btn" style="background:#1976D2; margin-top:20px;" onclick="nextRound()">下一题 ➔</button>
+    </div>
+</div>
+
+<script>
+    // --- 游戏数据 ---
+    const levels = [
+        { name: "红苹果 🍎", defaultColor: "#FF5252", shape: "🍎" },
+        { name: "大西瓜 🍉", defaultColor: "#4CAF50", shape: "🍉" },
+        { name: "圆太阳 ☀️", defaultColor: "#FFC107", shape: "☀️" },
+        { name: "紫葡萄 🍇", defaultColor: "#9C27B0", shape: "🍇" },
+        { name: "小爱心 ❤️", defaultColor: "#FF5252", shape: "❤️" },
+        { name: "一棵树 🌳", defaultColor: "#4CAF50", shape: "🌳" },
+        { name: "大海浪 🌊", defaultColor: "#2196F3", shape: "🌊" }
+    ];
+
+    let currentLevel = 0;
+    let isDrawing = false;
+    let monkeyInterval = null;
+    let currentBrushColor = "#000000";
+
+    const gCanvas = document.getElementById('g-canvas');
+    const mCanvas = document.getElementById('m-canvas');
+    const gCtx = gCanvas.getContext('2d');
+    const mCtx = mCanvas.getContext('2d');
+
+    // --- 初始化 ---
+    function init() {
+        resizeCanvas();
+        window.addEventListener('resize', () => {
+            clearTimeout(window.resizeTimer);
+            window.resizeTimer = setTimeout(resizeCanvas, 100);
+        });
+        
+        gCanvas.addEventListener('touchstart', startDraw, {passive: false});
+        gCanvas.addEventListener('touchmove', draw, {passive: false});
+        gCanvas.addEventListener('touchend', endDraw);
+        gCanvas.addEventListener('mousedown', startDraw);
+        gCanvas.addEventListener('mousemove', draw);
+        gCanvas.addEventListener('mouseup', endDraw);
+        gCanvas.addEventListener('mouseleave', endDraw);
+
+        loadLevel(0);
+    }
+
+    function resizeCanvas() {
+        const parent = gCanvas.parentElement;
+        const rect = parent.getBoundingClientRect();
+        // 减去label的高度和border
+        const h = rect.height - 60; // 这里的60要稍微加大因为label字体变大了
+        const w = rect.width;
+        
+        gCanvas.width = w;
+        gCanvas.height = h;
+        mCanvas.width = w;
+        mCanvas.height = h;
+        
+        if (levels[currentLevel]) {
+            drawBackground(levels[currentLevel]);
+            setupBrush();
+        }
+    }
+
+    function setupBrush() {
+        gCtx.lineWidth = 12;
+        gCtx.lineCap = 'round';
+        gCtx.lineJoin = 'round';
+        gCtx.strokeStyle = currentBrushColor;
+    }
+
+    function changeColor(color, btnElement) {
+        currentBrushColor = color;
+        gCtx.strokeStyle = currentBrushColor;
+
+        const btns = document.querySelectorAll('.color-btn');
+        btns.forEach(b => b.classList.remove('active'));
+        if(btnElement) {
+            btnElement.classList.add('active');
+        } else {
+            btns.forEach(b => {
+                if(b.style.backgroundColor.toLowerCase() === color.toLowerCase() || 
+                   rgbToHex(b.style.backgroundColor) === color.toLowerCase()) {
+                    b.classList.add('active');
+                }
+            });
+        }
+    }
+    
+    function rgbToHex(col) {
+        if(col.charAt(0)=='r'){
+            col=col.replace('rgb(','').replace(')','').split(',');
+            var r=parseInt(col[0], 10).toString(16);
+            var g=parseInt(col[1], 10).toString(16);
+            var b=parseInt(col[2], 10).toString(16);
+            r=r.length==1?'0'+r:r; g=g.length==1?'0'+g:g; b=b.length==1?'0'+b:b;
+            var colHex='#'+r+g+b;
+            return colHex;
+        }
+        return col;
+    }
+
+    function loadLevel(idx) {
+        if (idx >= levels.length) idx = 0;
+        currentLevel = idx;
+        const level = levels[idx];
+        
+        document.getElementById('topic-text').innerText = level.name;
+        document.getElementById('topic-text').style.color = level.defaultColor;
+
+        gCtx.clearRect(0, 0, gCanvas.width, gCanvas.height);
+        mCtx.clearRect(0, 0, mCanvas.width, mCanvas.height);
+
+        changeColor(level.defaultColor);
+        setupBrush();
+
+        mCtx.lineWidth = 8;
+        mCtx.lineCap = 'round';
+        mCtx.lineJoin = 'round';
+
+        drawBackground(level);
+        startMonkeyDrawing(level.defaultColor);
+    }
+
+    function drawBackground(level) {
+        const fontSize = Math.min(gCanvas.width, gCanvas.height) * 0.5;
+        gCtx.save();
+        gCtx.font = `${fontSize}px Arial`;
+        gCtx.textAlign = "center";
+        gCtx.textBaseline = "middle";
+        // 保持0.3的透明度
+        gCtx.globalAlpha = 0.3; 
+        gCtx.fillText(level.shape, gCanvas.width/2, gCanvas.height/2);
+        gCtx.restore();
+    }
+
+    let lastX = 0, lastY = 0;
+
+    function getPos(e) {
+        const rect = gCanvas.getBoundingClientRect();
+        let clientX, clientY;
+        if (e.touches) {
+            clientX = e.touches[0].clientX;
+            clientY = e.touches[0].clientY;
+        } else {
+            clientX = e.clientX;
+            clientY = e.clientY;
+        }
+        return {
+            x: clientX - rect.left,
+            y: clientY - rect.top
+        };
+    }
+
+    function startDraw(e) {
+        e.preventDefault(); 
+        isDrawing = true;
+        const pos = getPos(e);
+        lastX = pos.x;
+        lastY = pos.y;
+        
+        gCtx.beginPath();
+        gCtx.arc(lastX, lastY, gCtx.lineWidth/2, 0, Math.PI*2);
+        gCtx.fillStyle = gCtx.strokeStyle;
+        gCtx.fill();
+        gCtx.beginPath();
+        gCtx.moveTo(lastX, lastY);
+    }
+
+    function draw(e) {
+        if (!isDrawing) return;
+        e.preventDefault();
+        const pos = getPos(e);
+        
+        gCtx.lineTo(pos.x, pos.y);
+        gCtx.stroke();
+        
+        lastX = pos.x;
+        lastY = pos.y;
+    }
+
+    function endDraw(e) {
+        if(!isDrawing) return;
+        isDrawing = false;
+        gCtx.closePath();
+    }
+
+    function clearCanvas() {
+        gCtx.clearRect(0, 0, gCanvas.width, gCanvas.height);
+        drawBackground(levels[currentLevel]);
+    }
+
+    function startMonkeyDrawing(targetColor) {
+        if (monkeyInterval) clearInterval(monkeyInterval);
+        
+        let centerX = mCanvas.width / 2;
+        let centerY = mCanvas.height / 2;
+        let radius = Math.min(centerX, centerY) * 0.5; 
+        
+        monkeyInterval = setInterval(() => {
+            mCtx.beginPath();
+            
+            let startX = centerX + (Math.random() - 0.5) * radius * 1.5;
+            let startY = centerY + (Math.random() - 0.5) * radius * 1.5;
+            mCtx.moveTo(startX, startY);
+            
+            let endX = startX + (Math.random() - 0.5) * 60;
+            let endY = startY + (Math.random() - 0.5) * 60;
+            
+            mCtx.lineTo(endX, endY);
+
+            if (Math.random() < 0.3) {
+                 mCtx.strokeStyle = "#555"; 
+                 mCtx.lineWidth = 4;
+            } else {
+                 mCtx.strokeStyle = targetColor;
+                 mCtx.lineWidth = 8 + Math.random() * 6;
+            }
+
+            mCtx.stroke();
+            
+        }, 150); 
+    }
+
+    function finishGame() {
+        clearInterval(monkeyInterval);
+        document.getElementById('modal-overlay').style.display = 'flex';
+        try { new Audio('https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3').play(); } catch(e){}
+    }
+
+    function nextRound() {
+        document.getElementById('modal-overlay').style.display = 'none';
+        loadLevel(currentLevel + 1);
+    }
+
+    setTimeout(init, 100);
+
+</script>
+</body>
+</html>
